@@ -1098,7 +1098,7 @@ void handleRecipeOutput(struct BranchPath *curNode, struct Inventory tempInvento
  * Based on configuration parameters select and randomise within config.txt,
  * manage the array of legal moves based on the designated behavior of the parameters.
  -------------------------------------------------------------------*/
-void handleSelectAndRandom(struct BranchPath *curNode, int select, int randomise) {
+void handleSelectAndRandom(pcg64u_random_t *rng, struct BranchPath *curNode, int select, int randomise) {
 	/*if (select && curNode->moves < 55 && curNode->numLegalMoves > 0) {
 		softMin(curNode);
 	}*/
@@ -1108,7 +1108,7 @@ void handleSelectAndRandom(struct BranchPath *curNode, int select, int randomise
 	// Arbitrarily skip over the fastest legal move with a given probability
 	if (select && curNode->moves < 55 && curNode->numLegalMoves > 0) {
 		int nextMoveIndex = 0;
-		while (nextMoveIndex < curNode->numLegalMoves - 1 && rand() % 100 < 50) {
+		while (nextMoveIndex < curNode->numLegalMoves - 1 && (pcg64u_random_r(rng) & 1)) {
 			nextMoveIndex++;
 		}
 
@@ -1122,7 +1122,7 @@ void handleSelectAndRandom(struct BranchPath *curNode, int select, int randomise
 	// When not doing the select methodology, and opting for randomize
 	// just shuffle the entire list of legal moves and pick the new first item
 	else if (randomise) {
-		shuffleLegalMoves(curNode);
+		shuffleLegalMoves(rng, curNode);
 	}
 }
 
@@ -1969,7 +1969,7 @@ void shiftUpLegalMoves(struct BranchPath *node, int startIndex) {
  * the given node is compared to the subsequent nodes.
  * For more information on Softmax: https://en.wikipedia.org/wiki/Softmax_function
  -------------------------------------------------------------------*/
-void softMin(struct BranchPath *node) {
+void softMin(pcg64u_random_t *rng, struct BranchPath *node) {
 	// If numLegalMoves is 0 or 1, we will get an error when trying to do x % 0
 	if (node->numLegalMoves < 2) {
 		return;
@@ -1989,7 +1989,7 @@ void softMin(struct BranchPath *node) {
 	}
 	
 	// Generate a random number between 0 and weightSum
-	int modSum = rand() % weightSum;
+	int modSum = pcg64u_boundedrand_r(rng, weightSum);
 	
 	// Find the legal move that corresponds to the modSum
 	int index;
@@ -2021,11 +2021,11 @@ void softMin(struct BranchPath *node) {
  * Randomize the order of legal moves by switching two legal moves
  * numlegalMoves times.
  -------------------------------------------------------------------*/
-void shuffleLegalMoves(struct BranchPath *node) {
+void shuffleLegalMoves(pcg64u_random_t *rng, struct BranchPath *node) {
 	// Swap 2 legal moves a variable number of times
 	for (int i = 0; i < node->numLegalMoves; i++) {
-		int index1 = rand() % node->numLegalMoves;
-		int index2 = rand() % node->numLegalMoves;
+		int index1 = pcg64u_boundedrand_r(rng, node->numLegalMoves);
+		int index2 = pcg64u_boundedrand_r(rng, node->numLegalMoves);
 		struct BranchPath *temp = node->legalMoves[index1];
 		node->legalMoves[index1] = node->legalMoves[index2];
 		node->legalMoves[index2] = temp;
@@ -2202,7 +2202,7 @@ struct Inventory getSortedInventory(struct Inventory inventory, enum Action sort
  * a roadmap is found, the data is printed to a .txt file, and the result
  * is passed back to start.c to try submitting to the server.
  -------------------------------------------------------------------*/
-struct Result calculateOrder(int ID) {
+struct Result calculateOrder(pcg64u_random_t *rng, int ID) {
 	int randomise = getConfigInt("randomise");
 	int select = getConfigInt("select");
 	int branchInterval = getConfigInt("branchLogInterval");
@@ -2322,7 +2322,7 @@ struct Result calculateOrder(int ID) {
 					popAllButFirstLegalMove(curNode);
 				}
 				else {
-					handleSelectAndRandom(curNode, select, randomise);
+					handleSelectAndRandom(rng, curNode, select, randomise);
 				}
 				
 				if (curNode->numLegalMoves == 0) {
@@ -2374,7 +2374,7 @@ struct Result calculateOrder(int ID) {
 					continue;
 				}
 				
-				handleSelectAndRandom(curNode, select, randomise);
+				handleSelectAndRandom(rng, curNode, select, randomise);
 				
 				// Once the list is generated, choose the top-most (quickest) path and iterate downward
 				curNode->next = curNode->legalMoves[0];

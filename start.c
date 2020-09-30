@@ -67,13 +67,16 @@ int main() {
 
 	// Verify that the results folder exists
 	// If not, create the directory
-	mkdir("./results", 0777);
+	//mkdir("./results", 0777);
+	mkdir("./results");
 
 	// Initialize global variables in calculator.c
 	// This does not need to be done in parallel, as these globals will
 	// persist through all parallel calls to calculator.c
 	initializeInvFrames();
 	initializeRecipeList();
+	
+	int now = (int)time(NULL);
 	
 	// Create workerCount threads
 	omp_set_num_threads(workerCount);
@@ -82,10 +85,11 @@ int main() {
 		int ID = omp_get_thread_num();
 		
 		// Seed each thread's PRNG for the select and randomise config options
-		srand(((int)time(NULL)) ^ ID);
+		pcg64u_random_t rng;
+		pcg64u_srandom_r(&rng, now ^ ID);
 		
 		while (1) {
-			struct Result result = calculateOrder(ID);
+			struct Result result = calculateOrder(&rng, ID);
 			
 			#pragma omp critical
 			{

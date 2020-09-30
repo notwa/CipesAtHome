@@ -1,6 +1,7 @@
 #ifndef START_H
 #define START_H
 
+#include "pcg_variants.h"
 #include "inventory.h"
 #include "recipes.h"
 #include "config.h"

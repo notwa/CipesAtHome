@@ -146,9 +146,9 @@ void printResults(char* filename, struct BranchPath* path);
 void printSortData(FILE* fp, enum Action curNodeAction);
 
 // Select and random methodology functions
-void handleSelectAndRandom(struct BranchPath* curNode, int select, int randomise);
-void shuffleLegalMoves(struct BranchPath* node);
-void softMin(struct BranchPath *node);
+void handleSelectAndRandom(pcg64u_random_t *rng, struct BranchPath* curNode, int select, int randomise);
+void shuffleLegalMoves(pcg64u_random_t *rng, struct BranchPath* node);
+void softMin(pcg64u_random_t *rng, struct BranchPath *node);
 
 // Sorting functions
 int alpha_sort(const void* elem1, const void* elem2);
@@ -173,6 +173,6 @@ struct BranchPath* initializeRoot();
 
 // Other
 void periodicGithubCheck();
-struct Result calculateOrder(int ID);
+struct Result calculateOrder(pcg64u_random_t *rng, int ID);
 
 #endif
